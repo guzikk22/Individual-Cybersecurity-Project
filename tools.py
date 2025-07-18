@@ -31,16 +31,19 @@ def int_to_bytes(n, l=0) :
             break
     return b
 # efficient modular exponentiation with base b, exponent e and modulus m
-def modExp(b, e, m) :
+def modExp(b, e, mod) :
     n = 1
-    b = b%m
+    b = b%mod
     while e > 0 :
         if e%2 == 1:
             n*=b
-            n = n%m
+            n = n%mod
         b *= b
-        b = b%m
+        b = b%mod
         e = e//2
+    e = 0
+    b = 0
+
     return n
 
 #Prepares message m to be sent applies AES and HMAC in encrypt-then-hash order
@@ -101,6 +104,11 @@ def ReadMessage(pm, encK, authK) :
     m += dec.finalize()
 
     return m
+#performs OAEP padding
+def OAEP(m, label):
+    cs = os.urandom(32)
+    return OAEP_cs(m, label, cs)
+
 #performs OAEP padding with chosen seed (cs)
 def OAEP_cs(m, label, cs):
     if len(m) > 190 :
@@ -127,3 +135,40 @@ def OAEP_cs(m, label, cs):
     cs = bytes(a ^ b for a, b in zip(cs, mask))
 
     return b'\x00' + cs + mb
+# removes OAEP padding returns empty string if padding is invalid
+def deOAEP(pad_m, label):
+    if len(pad_m) != 256 :
+        return b''
+    if pad_m[0] != 0:
+        return b''
+
+    cs = pad_m[1:33]
+    mb = pad_m[33:]
+
+    maskGen = hashes.Hash(hashes.SHAKE128(32))
+    maskGen.update(mb)
+    mask = maskGen.finalize()
+    # XOR mask
+    cs = bytes(a ^ b for a, b in zip(cs, mask))
+
+    maskGen = hashes.Hash(hashes.SHAKE128(223))
+    maskGen.update(cs)
+    mask = maskGen.finalize()
+    # XOR mask
+    mb = bytes(a ^ b for a, b in zip(mb, mask))
+
+    label_hash = mb[:32]
+    mb = mb[32:]
+
+    H = hashes.Hash(hashes.SHA3_256())
+    H.update(label)
+    if label_hash != H.finalize() :
+        return b''
+
+    i = 0
+    while i<190 and mb[i] == 0:
+        i += 1
+    if mb[i] != 1:
+        return b''
+
+    return mb[i+1:]
