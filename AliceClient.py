@@ -11,7 +11,7 @@ import tools
 # sends encrypted/authenticated text over the socket
 def sendAuthText (text, netCon, encK, authK):
 	if len(encK) != 32 or len(authK) != 32 :
-		return False
+                return False
 	message = bytes(text, 'utf-8')
 	message = message + b' '*(len(message)%16)
 
@@ -37,8 +37,11 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, Their_pubKey):
 			password=None,
 		)
 		f.close()
+	incData = b''
+	# step 1
 	# Secret to be shared
 	S = os.urandom(64)
+	# step 2
 	# Encapsulated secret
 	int_S = tools.bytes_to_int( tools.OAEP(S, b'encapsulation') )
 	int_S = tools.modExp(
@@ -48,10 +51,18 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, Their_pubKey):
 		)
 	enS = tools.int_to_bytes(int_S, 256)
 	netSoc.sendall(enS)
+	# step 4
         # encryption key and authentication key
 	encK = S[:32]
 	authK = S[32:]
+	# step 7
+	# Receive message 2
+        while len(incData)<256:
+                incData += netSoc.recv(256)
 
+        
+
+        
 if __name__ == "__main__" :
 	# Load keys
 	with open("BobPubKey.pem", "rb") as f:

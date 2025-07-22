@@ -30,12 +30,12 @@ def int_to_bytes(n, l=0) :
         if l==0 and n==0:
             break
     return b
-# efficient modular exponentiation with base b, exponent e and modulus m
+# efficient integer modular exponentiation with base b, exponent e and modulus m
 def modExp(b, e, mod) :
     n = 1
     b = b%mod
     while e > 0 :
-        if e%2 == 1:
+        if e%2 == 1 :
             n*=b
             n = n%mod
         b *= b
@@ -45,10 +45,55 @@ def modExp(b, e, mod) :
     b = 0
 
     return n
+# returns smallest positive integer l such that b**l >= n
+def intLog(b, n) :
+    if b <= 0:
+        return 1
+    if n <= 1:
+        return 0
+    if n <= b:
+        return 1
+    
+    l = 1 # lower bound log
+    p = b # lower bound power
+    L = 1 # upper bound log
+    P = b # upper bound power
+    biExp = [b]
 
+    while P < n :
+        l = L ; p = P
+        L *= 2; P *= P
+        biExp.append(P)
+
+    a = len(biExp)-3
+    while a>=0 :
+        if p*biExp[a] < n:
+            l += 2**a
+            p *= biExp[a]
+        else :
+            L = l+2**a
+            P = p*biExp[a]
+        a -= 1
+        
+    return L
+
+# returns random integer 0<=out<n
+def trueRand_int(n) :
+    bit = intLog(2, n)
+    byte_l = bit//8
+    bit = 2**(bit%8)
+
+    while True:
+        r_byte = bytes( (os.urandom(1)[0] % bit,) )
+        r_bytes = r_byte + os.urandom(byte_l)
+        r = bytes_to_int(r_bytes)
+        if r<n :
+            break
+    return r
+        
 #Prepares message m to be sent applies AES and HMAC in encrypt-then-hash order
-def PrepareMessage(m, encK, authK) :
-    if len(encK) != 32 or len(authK) != 32:
+def PrepareMessage(m, encK, authK) :  
+    if len(encK) != 32 or len(authK) != 32 :
         return b''
     if len(m) % 16 != 0:
         return b''
@@ -172,3 +217,10 @@ def deOAEP(pad_m, label):
         return b''
 
     return mb[i+1:]
+# encrypts/decrypts with RSA e-exponent n-modulus
+def RSA_crypt(m, e, n):
+    if len(m) != 256:
+        return bytes(256)
+    int_m = bytes_to_int(m)
+    int_m = modExp(int_m, e, n)
+    m = int_to_bytes(int_m, 256)
