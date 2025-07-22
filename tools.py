@@ -224,3 +224,4 @@ def RSA_crypt(m, e, n):
     int_m = bytes_to_int(m)
     int_m = modExp(int_m, e, n)
     m = int_to_bytes(int_m, 256)
+    return m
