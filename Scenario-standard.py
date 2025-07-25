@@ -26,7 +26,7 @@ def BOB_THREAD(address, port):
 		netSoc=netSoc,
 		My_privKey = My_privKey,
 		Their_pubKey = Their_pubKey
-		 )
+		)
 
 def ALICE_THREAD(address, port):
 	# Load keys
@@ -54,13 +54,13 @@ def ALICE_THREAD(address, port):
 
 Bob_addr = "127.0.0.1"
 Bob_port = 65433
-
 Alice.verbose = 1
-Alice.oFile.close()
-Alice.oFile = open("AliceOutput.txt", 'w')
+Alice.oFile_ref = "AliceOutput.txt"
 Bob.verbose = 1
-Bob.oFile.close()
-Bob.oFile = open("BobOutput.txt", 'w')
+Bob.oFile_ref = "BobOutput.txt"
+
+Alice.oFile = open(Alice.oFileRef, 'w')
+Bob.oFile = open(Bob.oFileRef, 'w')
 
 t1 = threading.Thread(target = BOB_THREAD, args=(Bob_addr, Bob_port))
 t1.start()

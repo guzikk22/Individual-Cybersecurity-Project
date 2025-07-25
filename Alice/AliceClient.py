@@ -7,6 +7,10 @@ import socket
 import tools
 
 def SendAuthText(text, encK, authK, netSoc, seq_n):
+
+	global oFile
+	global oFile_ref
+
 	if seq_n >= 2**63:
 		return False
 	m = bytes(text, encoding="utf-8")
@@ -25,9 +29,15 @@ def SendAuthText(text, encK, authK, netSoc, seq_n):
 		oFile.write('>>TEXT>>  ')
 		oFile.write(text)
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	return True
 
 def RecvAuthText(encK, authK, netSoc, seq_n):
+
+	global oFile
+	global oFile_ref
+
 	if seq_n >= 2**63:
 		return ''
 	incData = b''
@@ -50,6 +60,8 @@ def RecvAuthText(encK, authK, netSoc, seq_n):
 	if tools.bytes_to_int(m[-8:]) != seq_n:
 		if verbose:
 			oFile.write('<<ERROR<<\n')
+			oFile.close()
+			oFile = open(oFile_ref, 'a')
 		return ''
 	text = tools.bytes_to_str(m[:-8])
 	while text[-1]==' ':
@@ -59,6 +71,8 @@ def RecvAuthText(encK, authK, netSoc, seq_n):
 		oFile.write('<<TEXT<<  ')
 		oFile.write(text)
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	return text
 
 #IP address and port to which initiator will attempt to connect
@@ -70,6 +84,10 @@ def startConnection(HOST, PORT):
 	return netSocket
 
 def Send(netSoc, m):
+
+	global oFile
+	global oFile_ref
+
 	netSoc.sendall(m)
 	if verbose > 1:
 		oFile.write('>>>')
@@ -77,8 +95,14 @@ def Send(netSoc, m):
 		oFile.write('>>>  ')
 		oFile.write(tools.bytes_strRep(m))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 
 def Recv(netSoc, n):
+
+	global oFile
+	global oFile_ref
+
 	m = netSoc.recv(n)
 	if verbose > 1:
 		oFile.write('<<<')
@@ -86,11 +110,17 @@ def Recv(netSoc, n):
 		oFile.write('<<<  ')
 		oFile.write(tools.bytes_strRep(m))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
+
 	return m
 
 # Returns a encryption key and authentication key if successful
 def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 	
+	global oFile
+	global oFile_ref
+
 	My_pubKey = My_privKey.public_key()
 	incData = b''
 	# step 1
@@ -100,6 +130,8 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 		oFile.write('S = ')
 		oFile.write(tools.bytes_strRep(S))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	# step 2
 	# Encapsulated secret
 	int_S = tools.bytes_to_int( tools.OAEP(S, b'encapsulation') )
@@ -122,6 +154,8 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 		oFile.write('authK = ')
 		oFile.write(tools.bytes_strRep(authK))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	# step 7
 	# Receive message 1
 	while len(incData)<560:
@@ -138,7 +172,7 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 	com0 = com0[:256]
 
 	m_int = tools.trueRand_int( My_pubKey.public_numbers().n )
-	m_bytes = tools.int_to_bytes(m_int)
+	m_bytes = tools.int_to_bytes(m_int, 256)
 	# Send message 2
 	Send(netSoc, tools.PrepareMessage(
 		m = m_bytes,
@@ -147,15 +181,17 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 		)
 	)
 	if verbose:
-	     oFile.write('COM(v0) = ')
-	     oFile.write(tools.bytes_strRep(com0))
-	     oFile.write('\n')
-	     oFile.write('COM(v1) = ')
-	     oFile.write(tools.bytes_strRep(com1))
-	     oFile.write('\n')
-	     oFile.write('m = ')
-	     #oFile.write(str(m_int))
-	     oFile.write('\n')
+		oFile.write('COM(v0) = ')
+		oFile.write(tools.bytes_strRep(com0))
+		oFile.write('\n')
+		oFile.write('COM(v1) = ')
+		oFile.write(tools.bytes_strRep(com1))
+		oFile.write('\n')
+		oFile.write('m = ')
+		oFile.write(str(m_int))
+		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	# step 9
 	# Receive message 3
 	while len(incData)<368:
@@ -185,6 +221,8 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 		oFile.write('s1 = ')
 		oFile.write(tools.bytes_strRep(s1))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	
 	test = tools.OAEP_cs(v0, b'commitment', s0)
 	test = tools.RSA_crypt(
@@ -196,6 +234,8 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 ##		oFile.write('test0 = ')
 ##		oFile.write(tools.bytes_strRep(test))
 ##		oFile.write('\n')
+##		oFile.close()
+##		oFile = open(oFile_ref, 'a')
 	if test != com0 :
 		return (b'',b'')
 	test = tools.OAEP_cs(v1, b'commitment', s1)
@@ -208,11 +248,15 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 ##		oFile.write('test1 = ')
 ##		oFile.write(tools.bytes_strRep(test))
 ##		oFile.write('\n')
+##		oFile.close()
+##		oFile = open(oFile_ref, 'a')
 	if test != com1 :
 		return (b'',b'')
 	if verbose:
 		oFile.write("{COMMITMENT VERIFIED}")
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	# step 10
 	v = tools.bytes_to_int(v0+v1)
 	# step 11
@@ -220,8 +264,10 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 	c = c%My_pubKey.public_numbers().n
 	if verbose:
 		oFile.write('c = ')
-		#oFile.write(str(c))
+		oFile.write(str(c))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	# step 12
 	r = tools.modExp(
 		b = c,
@@ -230,8 +276,10 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 		)
 	if verbose:
 		oFile.write('r = ')
-		#oFile.write(str(r))
+		oFile.write(str(r))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	# Send message 4
 	r_bytes = tools.int_to_bytes(r, 256)
 	Send(netSoc, tools.PrepareMessage(
@@ -243,15 +291,20 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 	if verbose:
 		oFile.write("{PROTOCOL COMPLETED}")
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	return (encK, authK)
 
 global verbose
 verbose = 0
+global oFile_ref
 global oFile
-oFile = open("AliceOutput.txt", 'w')
 
 if __name__ == "__main__" :
+	oFile_ref = "AliceOutput.txt"
 	verbose = 1
+
+	oFile = open(oFile_ref, 'w')
 	# Load keys
 	with open("BobPubKey.pem", "rb") as f:
 		Their_pubKey = SERIAL.load_pem_public_key(

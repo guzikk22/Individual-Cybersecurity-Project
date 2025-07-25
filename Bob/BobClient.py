@@ -7,6 +7,10 @@ import socket
 import tools
 
 def SendAuthText(text, encK, authK, netSoc, seq_n):
+
+	global oFile
+	global oFile_ref
+	
 	if seq_n >= 2**63:
 		return False
 	m = bytes(text, encoding="utf-8")
@@ -26,10 +30,16 @@ def SendAuthText(text, encK, authK, netSoc, seq_n):
 		oFile.write('>>TEXT>>  ')
 		oFile.write(text)
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 
 	return True
 
 def RecvAuthText(encK, authK, netSoc, seq_n):
+
+	global oFile
+	global oFile_ref
+
 	if seq_n >= 2**63:
 		return False
 	incData = b''
@@ -57,11 +67,12 @@ def RecvAuthText(encK, authK, netSoc, seq_n):
 		oFile.write('<<TEXT<<  ')
 		oFile.write(text)
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	return text
 
 #IP address and port on which receiver will listen for connections
 def startListening(HOST, PORT):
-
 	LisSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	LisSocket.bind((HOST, PORT))
 	LisSocket.listen()
@@ -69,6 +80,10 @@ def startListening(HOST, PORT):
 	return netSoc, incAddress
 
 def Send(netSoc, m):
+
+	global oFile
+	global oFile_ref
+
 	netSoc.sendall(m)
 	if verbose > 1:
 		oFile.write('>>>')
@@ -76,8 +91,14 @@ def Send(netSoc, m):
 		oFile.write('>>>  ')
 		oFile.write(tools.bytes_strRep(m))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 
 def Recv(netSoc, n):
+
+	global oFile
+	global oFile_ref
+
 	m = netSoc.recv(n)
 	if verbose > 1:
 		oFile.write('<<<')
@@ -85,10 +106,16 @@ def Recv(netSoc, n):
 		oFile.write('<<<  ')
 		oFile.write(tools.bytes_strRep(m))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	return m
 
 # Returns a encryption key and authentication key if successful
 def RepudiableAuthenticationProtocol_Bob(netSoc, My_privKey, Their_pubKey):
+
+	global oFile
+	global oFile_ref
+
 	My_pubKey = My_privKey.public_key()
 	incData = b''
 	# step 3
@@ -109,6 +136,8 @@ def RepudiableAuthenticationProtocol_Bob(netSoc, My_privKey, Their_pubKey):
 		oFile.write('S = ')
 		oFile.write(tools.bytes_strRep(S))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	# step 4
 	# encryption key and authentication key
 	encK = S[:32]
@@ -120,6 +149,8 @@ def RepudiableAuthenticationProtocol_Bob(netSoc, My_privKey, Their_pubKey):
 		oFile.write('authK = ')
 		oFile.write(tools.bytes_strRep(authK))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	# step 5
 	v = tools.trueRand_int( Their_pubKey.public_numbers().n )
 	v1 = tools.int_to_bytes(v, 256)
@@ -135,6 +166,8 @@ def RepudiableAuthenticationProtocol_Bob(netSoc, My_privKey, Their_pubKey):
 		oFile.write('v1 = ')
 		oFile.write(tools.bytes_strRep(v1))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	# step 6
 	s0 = os.urandom(32)
 	com0 = tools.OAEP_cs(v0, b'commitment', s0)
@@ -163,6 +196,8 @@ def RepudiableAuthenticationProtocol_Bob(netSoc, My_privKey, Their_pubKey):
 		oFile.write('s1 = ')
 		oFile.write(tools.bytes_strRep(s1))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	# Send message 1
 	Send(netSoc, tools.PrepareMessage(
 		m = com0 + com1,
@@ -188,6 +223,8 @@ def RepudiableAuthenticationProtocol_Bob(netSoc, My_privKey, Their_pubKey):
 		oFile.write('m = ')
 		oFile.write(str(m_int))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 
 	# Send message 3
 	Send(netSoc, tools.PrepareMessage(
@@ -203,6 +240,8 @@ def RepudiableAuthenticationProtocol_Bob(netSoc, My_privKey, Their_pubKey):
 		oFile.write('c = ')
 		oFile.write(str(c))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	# step 13
 	# Receive message 4
 	while len(incData)<304:
@@ -220,6 +259,8 @@ def RepudiableAuthenticationProtocol_Bob(netSoc, My_privKey, Their_pubKey):
 		oFile.write('r = ')
 		oFile.write(str(r))
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 
 	test = tools.modExp(
 		b = r,
@@ -233,15 +274,19 @@ def RepudiableAuthenticationProtocol_Bob(netSoc, My_privKey, Their_pubKey):
 		oFile.write('\n')
 		oFile.write("{PROTOCOL COMPLETED}")
 		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	return (encK, authK)
 
 global verbose
 verbose = 0
+global oFile_ref
 global oFile
-oFile = open("BobOutput.txt", 'w')
-	
+
 if __name__ == "__main__" :
+	oFile_ref = "BobOutput.txt"
 	verbose = 1
+	oFile = open(oFile_ref, 'w')
 	# Load keys
 	with open("AlicePubKey.pem", "rb") as f:
 		Their_pubKey = SERIAL.load_pem_public_key(

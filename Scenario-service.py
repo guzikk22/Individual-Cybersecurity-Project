@@ -30,7 +30,7 @@ def BOB_THREAD(address, port):
 		netSoc=netSoc,
 		My_privKey = My_privKey,
 		Their_pubKey = Their_pubKey
-		 )
+		)
 
 	Bob.oFile.write("{AUTHENTICATION SUCCESSFUL}\n")
 	Bob.oFile.close()
@@ -240,9 +240,9 @@ def ALICE_THREAD(address, port):
 				if message == '':
 					break
 				if message != 'a':
-					print("No such files exists.")
+					print("No such file exists.")
 					continue
-				newText = input("Enter new contents for the file (use \\n for line break and \\\\ for \\):")
+				newText = input("Enter new contents for the file (use \\n for line break and \\\\ for \\):\n")
 				Alice.SendAuthText(
 					text = tools.strDeserialize(newText+'.'),
 					encK = encK,
@@ -303,16 +303,13 @@ def InvalidCommandPrompt():
 
 Bob_addr = "127.0.0.1"
 Bob_port = 65433
-
 Alice.verbose = 1
-Alice_oFileRef = "AliceOutput.txt"
+Alice.oFile_ref = "AliceOutput.txt"
 Bob.verbose = 1
-Bob_oFileRef = "BobOutput.txt"
+Bob.oFile_ref = "BobOutput.txt"
 
-Alice.oFile.close()
-Alice.oFile = open(Alice_oFileRef, 'w')
-Bob.oFile.close()
-Bob.oFile = open(Bob_oFileRef, 'w')
+Alice.oFile = open(Alice.oFile_ref, 'w')
+Bob.oFile = open(Bob.oFile_ref, 'w')
 
 t1 = threading.Thread(target = BOB_THREAD, args=(Bob_addr, Bob_port))
 t1.start()
