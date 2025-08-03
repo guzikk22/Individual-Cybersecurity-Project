@@ -7,8 +7,6 @@ import cryptography.hazmat.primitives.serialization as SERIAL
 import threading
 import time
 import tools
-
-from contextlib import redirect_stdout
 # Scenario in which the authentication protocol is run and later Alice is able to use a simple file storing service hosted by Bob
 
 def BOB_THREAD(address, port):
@@ -34,7 +32,7 @@ def BOB_THREAD(address, port):
 
 	Bob.oFile.write("{AUTHENTICATION SUCCESSFUL}\n")
 	Bob.oFile.close()
-	Bob.oFile = open(Bob_oFileRef, 'a')
+	Bob.oFile = open(Bob.oFile_ref, 'a')
 
 	mSent = 0 #messages sent
 	mReceived = 0 #messages received
@@ -43,7 +41,7 @@ def BOB_THREAD(address, port):
 		com = Bob.RecvAuthText(encK, authK, netSoc, mReceived)
 		mReceived += 1
 		Bob.oFile.close()
-		Bob.oFile = open(Bob_oFileRef, 'a')
+		Bob.oFile = open(Bob.oFile_ref, 'a')
 		if len(com)==0:
 			break
 
@@ -59,7 +57,7 @@ def BOB_THREAD(address, port):
 						)
 					mSent+=1
 					Bob.oFile.close()
-					Bob.oFile = open(Bob_oFileRef, 'a')
+					Bob.oFile = open(Bob.oFile_ref, 'a')
 					continue
 				if isfile("Bob/fileshare/"+com[1:]+".txt"):
 					f = open("Bob/fileshare/"+com[1:]+".txt")
@@ -72,7 +70,7 @@ def BOB_THREAD(address, port):
 						)
 					mSent+=1
 					Bob.oFile.close()
-					Bob.oFile = open(Bob_oFileRef, 'a')
+					Bob.oFile = open(Bob.oFile_ref, 'a')
 					continue
 				Bob.SendAuthText(
 					text = 'No such file exists',
@@ -83,7 +81,7 @@ def BOB_THREAD(address, port):
 					)
 				mSent+=1
 				Bob.oFile.close()
-				Bob.oFile = open(Bob_oFileRef, 'a')
+				Bob.oFile = open(Bob.oFile_ref, 'a')
 				continue
 			case 'w':
 				if '\\' in com[1:] or '/' in com[1:]:
@@ -96,7 +94,7 @@ def BOB_THREAD(address, port):
 						)
 					mSent+=1
 					Bob.oFile.close()
-					Bob.oFile = open(Bob_oFileRef, 'a')
+					Bob.oFile = open(Bob.oFile_ref, 'a')
 					continue
 				if isfile("Bob/fileshare/"+com[1:]+".txt"):
 					Bob.SendAuthText(
@@ -108,11 +106,11 @@ def BOB_THREAD(address, port):
 						)
 					mSent+=1
 					Bob.oFile.close()
-					Bob.oFile = open(Bob_oFileRef, 'a')
+					Bob.oFile = open(Bob.oFile_ref, 'a')
 					edit = Bob.RecvAuthText(encK, authK, netSoc, mReceived)
 					mReceived += 1
 					Bob.oFile.close()
-					Bob.oFile = open(Bob_oFileRef, 'a')
+					Bob.oFile = open(Bob.oFile_ref, 'a')
 					if len(edit)==0:
 						break
 					f = open("Bob/fileshare/"+com[1:]+".txt", 'w')
@@ -127,7 +125,7 @@ def BOB_THREAD(address, port):
 						)
 					mSent += 1
 					Bob.oFile.close()
-					Bob.oFile = open(Bob_oFileRef, 'a')
+					Bob.oFile = open(Bob.oFile_ref, 'a')
 					continue
 				Bob.SendAuthText(
 					text = 'd',
@@ -138,7 +136,7 @@ def BOB_THREAD(address, port):
 					)
 				mSent+=1
 				Bob.oFile.close()
-				Bob.oFile = open(Bob_oFileRef, 'a')
+				Bob.oFile = open(Bob.oFile_ref, 'a')
 				continue
 			case 'l':
 				li = listdir("Bob/fileshare")
@@ -153,7 +151,7 @@ def BOB_THREAD(address, port):
 					)
 				mSent+=1
 				Bob.oFile.close()
-				Bob.oFile = open(Bob_oFileRef, 'a')
+				Bob.oFile = open(Bob.oFile_ref, 'a')
 			case 'e':
 				break
 			case _:
@@ -166,7 +164,7 @@ def BOB_THREAD(address, port):
 					)
 				mSent+=1
 				Bob.oFile.close()
-				Bob.oFile = open(Bob_oFileRef, 'a')
+				Bob.oFile = open(Bob.oFile_ref, 'a')
 
 def ALICE_THREAD(address, port):
 	# Load keys
@@ -194,7 +192,7 @@ def ALICE_THREAD(address, port):
 
 	Alice.oFile.write("{AUTHENTICATION SUCCESSFUL}\n")
 	Alice.oFile.close()
-	Alice.oFile = open(Alice_oFileRef, 'a')
+	Alice.oFile = open(Alice.oFile_ref, 'a')
 
 	mSent = 0 #messages sent
 	mReceived = 0 #messages received
@@ -218,7 +216,7 @@ def ALICE_THREAD(address, port):
 					)
 				mSent+=1
 				Alice.oFile.close()
-				Alice.oFile = open(Alice_oFileRef, 'a')
+				Alice.oFile = open(Alice.oFile_ref, 'a')
 			case 'w':
 				if com[1] != ' ':
 					InvalidCommandPrompt()
@@ -232,10 +230,10 @@ def ALICE_THREAD(address, port):
 					)
 				mSent+=1
 				Alice.oFile.close()
-				Alice.oFile = open(Alice_oFileRef, 'a')
+				Alice.oFile = open(Alice.oFile_ref, 'a')
 				message =  Alice.RecvAuthText(encK, authK, netSoc, mReceived)
 				Alice.oFile.close()
-				Alice.oFile = open(Alice_oFileRef, 'a')
+				Alice.oFile = open(Alice.oFile_ref, 'a')
 				mReceived += 1
 				if message == '':
 					break
@@ -252,7 +250,7 @@ def ALICE_THREAD(address, port):
 					)
 				mSent+=1
 				Alice.oFile.close()
-				Alice.oFile = open(Alice_oFileRef, 'a')
+				Alice.oFile = open(Alice.oFile_ref, 'a')
 			case 'l':
 				if com != 'list':
 					InvalidCommandPrompt()
@@ -266,7 +264,7 @@ def ALICE_THREAD(address, port):
 					)
 				mSent += 1
 				Alice.oFile.close()
-				Alice.oFile = open(Alice_oFileRef, 'a')
+				Alice.oFile = open(Alice.oFile_ref, 'a')
 			case 'e':
 				if com != 'exit':
 					InvalidCommandPrompt()
@@ -285,7 +283,7 @@ def ALICE_THREAD(address, port):
 		message = Alice.RecvAuthText(encK, authK, netSoc, mReceived)
 		mReceived += 1
 		Alice.oFile.close()
-		Alice.oFile = open(Alice_oFileRef, 'a')
+		Alice.oFile = open(Alice.oFile_ref, 'a')
 		if message == '':
 			break
 		print(message)
@@ -301,12 +299,14 @@ def HelpPrompt():
 def InvalidCommandPrompt():
 	print("Invalid command, type 'help' to see the list of available commands")
 
-Bob_addr = "127.0.0.1"
+#CONFIGURATION START
+Bob_addr = "127.0.0.1" # address and port used by Bob to set up protocol
 Bob_port = 65433
-Alice.verbose = 1
-Alice.oFile_ref = "AliceOutput.txt"
-Bob.verbose = 1
-Bob.oFile_ref = "BobOutput.txt"
+Alice.verbose = 1 #set to 0 to not save Alice's logs, 1 to have include protocol's internal state in the protocol and 2 to include messages exchange in the logs as well. 
+Alice.oFile_ref = "AliceOutput.txt" #Output file where the Alice's logs are saved
+Bob.verbose = 1 # Same as Alice.verbose but for Bob's logs
+Bob.oFile_ref = "BobOutput.txt" # Same as Alice.oFile_ref but for Bob's logs
+#CONFIGURATION END
 
 Alice.oFile = open(Alice.oFile_ref, 'w')
 Bob.oFile = open(Bob.oFile_ref, 'w')

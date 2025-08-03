@@ -87,7 +87,7 @@ def Send(netSoc, m):
 	netSoc.sendall(m)
 	if verbose > 1:
 		oFile.write('>>>')
-		oFile.write(len(m))
+		oFile.write(str(len(m)))
 		oFile.write('>>>  ')
 		oFile.write(tools.bytes_strRep(m))
 		oFile.write('\n')
@@ -102,7 +102,7 @@ def Recv(netSoc, n):
 	m = netSoc.recv(n)
 	if verbose > 1:
 		oFile.write('<<<')
-		oFile.write(len(m))
+		oFile.write(str(len(m)))
 		oFile.write('<<<  ')
 		oFile.write(tools.bytes_strRep(m))
 		oFile.write('\n')
@@ -118,6 +118,20 @@ def RepudiableAuthenticationProtocol_Bob(netSoc, My_privKey, Their_pubKey):
 
 	My_pubKey = My_privKey.public_key()
 	incData = b''
+
+	if verbose:
+		oFile.write('E = ')
+		oFile.write(str( My_pubKey.public_numbers().e ))
+		oFile.write('\n')
+		oFile.write('N = ')
+		oFile.write(str( My_pubKey.public_numbers().n ))
+		oFile.write('\n')
+		oFile.write('e = ')
+		oFile.write(str( Their_pubKey.public_numbers().e ))
+		oFile.write('\n')
+		oFile.write('n = ')
+		oFile.write(str( Their_pubKey.public_numbers().n ))
+		oFile.write('\n')
 	# step 3
 	# Receive initial message
 	while len(incData)<256:
@@ -245,7 +259,7 @@ def RepudiableAuthenticationProtocol_Bob(netSoc, My_privKey, Their_pubKey):
 	# step 13
 	# Receive message 4
 	while len(incData)<304:
-		incData += netSoc.recv(304-len(incData))
+		incData += Recv(netSoc, 304-len(incData))
 	r_bytes = incData[:304]
 	incData = incData[304:]
 

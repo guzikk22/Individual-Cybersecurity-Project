@@ -4,7 +4,6 @@ import socket
 import cryptography.hazmat.primitives.serialization as SERIAL
 import threading
 import time
-from contextlib import redirect_stdout
 # Scenario in which the authentication protocol is run and nothing else
 
 def BOB_THREAD(address, port):
@@ -52,15 +51,17 @@ def ALICE_THREAD(address, port):
 		Their_pubKey = Their_pubKey
 		)
 
-Bob_addr = "127.0.0.1"
+#CONFIGURATION START
+Bob_addr = "127.0.0.1" # address and port used by Bob to set up protocol
 Bob_port = 65433
-Alice.verbose = 1
-Alice.oFile_ref = "AliceOutput.txt"
-Bob.verbose = 1
-Bob.oFile_ref = "BobOutput.txt"
+Alice.verbose = 2 #set to 0 to not save Alice's logs, 1 to have include protocol's internal state in the protocol and 2 to include messages exchange in the logs as well. 
+Alice.oFile_ref = "AliceOutput.txt" #Output file where the Alice's logs are saved
+Bob.verbose = 2 # Same as Alice.verbose but for Bob's logs
+Bob.oFile_ref = "BobOutput.txt" # Same as Alice.oFile_ref but for Bob's logs
+#CONFIGURATION END
 
-Alice.oFile = open(Alice.oFileRef, 'w')
-Bob.oFile = open(Bob.oFileRef, 'w')
+Alice.oFile = open(Alice.oFile_ref, 'w')
+Bob.oFile = open(Bob.oFile_ref, 'w')
 
 t1 = threading.Thread(target = BOB_THREAD, args=(Bob_addr, Bob_port))
 t1.start()

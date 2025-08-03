@@ -91,7 +91,7 @@ def Send(netSoc, m):
 	netSoc.sendall(m)
 	if verbose > 1:
 		oFile.write('>>>')
-		oFile.write(len(m))
+		oFile.write(str(len(m)))
 		oFile.write('>>>  ')
 		oFile.write(tools.bytes_strRep(m))
 		oFile.write('\n')
@@ -106,7 +106,7 @@ def Recv(netSoc, n):
 	m = netSoc.recv(n)
 	if verbose > 1:
 		oFile.write('<<<')
-		oFile.write(len(m))
+		oFile.write(str(len(m)))
 		oFile.write('<<<  ')
 		oFile.write(tools.bytes_strRep(m))
 		oFile.write('\n')
@@ -123,6 +123,21 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 
 	My_pubKey = My_privKey.public_key()
 	incData = b''
+
+	if verbose:
+		oFile.write('e = ')
+		oFile.write(str( My_pubKey.public_numbers().e ))
+		oFile.write('\n')
+		oFile.write('n = ')
+		oFile.write(str( My_pubKey.public_numbers().n ))
+		oFile.write('\n')
+		oFile.write('E = ')
+		oFile.write(str( Their_pubKey.public_numbers().e ))
+		oFile.write('\n')
+		oFile.write('N = ')
+		oFile.write(str( Their_pubKey.public_numbers().n ))
+		oFile.write('\n')
+	
 	# step 1
 	# Secret to be shared
 	S = os.urandom(64)
@@ -159,7 +174,7 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 	# step 7
 	# Receive message 1
 	while len(incData)<560:
-		incData += netSoc.recv(560-len(incData))
+		incData += Recv(netSoc, 560-len(incData))
 
 	com0 = tools.ReadMessage(
 		pm = incData[:560],
@@ -195,7 +210,7 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 	# step 9
 	# Receive message 3
 	while len(incData)<368:
-		incData += netSoc.recv(368-len(incData))
+		incData += Recv(netSoc, 368-len(incData))
 	s1 = incData[:368]
 	incData = incData[368:]
 	s1 = tools.ReadMessage(
@@ -259,6 +274,12 @@ def RepudiableAuthenticationProtocol_Alice(netSoc, My_privKey, Their_pubKey):
 		oFile = open(oFile_ref, 'a')
 	# step 10
 	v = tools.bytes_to_int(v0+v1)
+	if verbose:
+		oFile.write('v = ')
+		oFile.write(str(v))
+		oFile.write('\n')
+		oFile.close()
+		oFile = open(oFile_ref, 'a')
 	# step 11
 	c = v + m_int
 	c = c%My_pubKey.public_numbers().n
