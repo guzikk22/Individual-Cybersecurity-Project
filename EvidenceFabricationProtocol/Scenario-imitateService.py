@@ -1,0 +1,342 @@
+import Alice.ImitatorAliceClient as Alice
+import Bob.ImitatorBobClient as Bob
+import os
+from os.path import isfile
+from os import listdir
+import socket
+import cryptography.hazmat.primitives.serialization as SERIAL
+import threading
+import time
+import tools
+# Scenario in which the authentication protocol is run and later Alice is able to use a simple file storing service hosted by Bob
+
+def BOB_THREAD(address, port, My_pubKey, Their_pubKey, S, m_int, r):
+
+	netSoc, incAddress = Bob.startListening( HOST=address, PORT=port)
+	
+	encK, authK = Bob.RepudiableAuthenticationProtocol_Bob(
+		netSoc=netSoc,
+		My_pubKey = My_pubKey,
+		Their_pubKey = Their_pubKey,
+		S = S,
+		m_int = m_int,
+		r = r
+		)
+
+	Bob.oFile.write("{AUTHENTICATION SUCCESSFUL}\n")
+	Bob.oFile.close()
+	Bob.oFile = open(Bob.oFile_ref, 'a')
+
+	mSent = 0 #messages sent
+	mReceived = 0 #messages received
+	# host the file service
+	while True:
+		com = Bob.RecvAuthText(encK, authK, netSoc, mReceived)
+		mReceived += 1
+		Bob.oFile.close()
+		Bob.oFile = open(Bob.oFile_ref, 'a')
+		if len(com)==0:
+			break
+
+		match com[0]:
+			case 'r':
+				if '\\' in com[1:] or '/' in com[1:]:
+					Bob.SendAuthText(
+						text = 'No such file exists',
+						encK = encK,
+						authK = authK,
+						netSoc = netSoc,
+						seq_n = mSent
+						)
+					mSent+=1
+					Bob.oFile.close()
+					Bob.oFile = open(Bob.oFile_ref, 'a')
+					continue
+				if isfile("Bob/fileshare/"+com[1:]+".txt"):
+					f = open("Bob/fileshare/"+com[1:]+".txt")
+					Bob.SendAuthText(
+						text = 'contents of '+com[1:]+":\n" + f.read(),
+						encK = encK,
+						authK = authK,
+						netSoc = netSoc,
+						seq_n = mSent
+						)
+					mSent+=1
+					Bob.oFile.close()
+					Bob.oFile = open(Bob.oFile_ref, 'a')
+					continue
+				Bob.SendAuthText(
+					text = 'No such file exists',
+					encK = encK,
+					authK = authK,
+					netSoc = netSoc,
+					seq_n = mSent
+					)
+				mSent+=1
+				Bob.oFile.close()
+				Bob.oFile = open(Bob.oFile_ref, 'a')
+				continue
+			case 'w':
+				if '\\' in com[1:] or '/' in com[1:]:
+					Bob.SendAuthText(
+						text = 'd',
+						encK = encK,
+						authK = authK,
+						netSoc = netSoc,
+						seq_n = mSent
+						)
+					mSent+=1
+					Bob.oFile.close()
+					Bob.oFile = open(Bob.oFile_ref, 'a')
+					continue
+				if isfile("Bob/fileshare/"+com[1:]+".txt"):
+					Bob.SendAuthText(
+						text = 'a',
+						encK = encK,
+						authK = authK,
+						netSoc = netSoc,
+						seq_n = mSent
+						)
+					mSent+=1
+					Bob.oFile.close()
+					Bob.oFile = open(Bob.oFile_ref, 'a')
+					edit = Bob.RecvAuthText(encK, authK, netSoc, mReceived)
+					mReceived += 1
+					Bob.oFile.close()
+					Bob.oFile = open(Bob.oFile_ref, 'a')
+					if len(edit)==0:
+						break
+					f = open("Bob/fileshare/"+com[1:]+".txt", 'w')
+					f.write(edit[:-1])
+					f.close()
+					Bob.SendAuthText(
+						text = 'File successfully overwritten',
+						encK = encK,
+						authK = authK,
+						netSoc = netSoc,
+						seq_n = mSent
+						)
+					mSent += 1
+					Bob.oFile.close()
+					Bob.oFile = open(Bob.oFile_ref, 'a')
+					continue
+				Bob.SendAuthText(
+					text = 'd',
+					encK = encK,
+					authK = authK,
+					netSoc = netSoc,
+					seq_n = mSent
+					)
+				mSent+=1
+				Bob.oFile.close()
+				Bob.oFile = open(Bob.oFile_ref, 'a')
+				continue
+			case 'l':
+				li = listdir("Bob/fileshare")
+				for i in range(len(li)):
+					li[i] = li[i][:-4]
+				Bob.SendAuthText(
+					text = str(li)[1:-1],
+					encK = encK,
+					authK = authK,
+					netSoc = netSoc,
+					seq_n = mSent
+					)
+				mSent+=1
+				Bob.oFile.close()
+				Bob.oFile = open(Bob.oFile_ref, 'a')
+			case 'e':
+				break
+			case _:
+				Bob.SendAuthText(
+					text = "WHAT?!",
+					encK = encK,
+					authK = authK,
+					netSoc = netSoc,
+					seq_n = mSent
+					)
+				mSent+=1
+				Bob.oFile.close()
+				Bob.oFile = open(Bob.oFile_ref, 'a')
+
+def ALICE_THREAD(address, port, My_pubKey, Their_pubKey, S, m_int, r):
+
+	time.sleep(1)
+	netSoc = Alice.startConnection( HOST=address, PORT=port )
+
+	encK, authK = Alice.RepudiableAuthenticationProtocol_Alice(
+		netSoc = netSoc,
+		My_pubKey = My_pubKey,
+		Their_pubKey = Their_pubKey,
+		S = S,
+		m_int = m_int,
+		r = r
+		)
+
+	Alice.oFile.write("{AUTHENTICATION SUCCESSFUL}\n")
+	Alice.oFile.close()
+	Alice.oFile = open(Alice.oFile_ref, 'a')
+
+	mSent = 0 #messages sent
+	mReceived = 0 #messages received
+	# interface with the file service
+	while True:
+		com = input("Bob//>")
+		if len(com)<3 or com[0] == 'h' :
+			HelpPrompt()
+			continue
+		match com[0]:
+			case 'r':
+				if com[1] != ' ':
+					InvalidCommandPrompt()
+					continue
+				Alice.SendAuthText(
+					text = 'r'+com[2:],
+					encK = encK,
+					authK = authK,
+					netSoc = netSoc,
+					seq_n = mSent
+					)
+				mSent+=1
+				Alice.oFile.close()
+				Alice.oFile = open(Alice.oFile_ref, 'a')
+			case 'w':
+				if com[1] != ' ':
+					InvalidCommandPrompt()
+					continue
+				Alice.SendAuthText(
+					text = 'w'+com[2:],
+					encK = encK,
+					authK = authK,
+					netSoc = netSoc,
+					seq_n = mSent
+					)
+				mSent+=1
+				Alice.oFile.close()
+				Alice.oFile = open(Alice.oFile_ref, 'a')
+				message =  Alice.RecvAuthText(encK, authK, netSoc, mReceived)
+				Alice.oFile.close()
+				Alice.oFile = open(Alice.oFile_ref, 'a')
+				mReceived += 1
+				if message == '':
+					break
+				if message != 'a':
+					print("No such file exists.")
+					continue
+				newText = input("Enter new contents for the file (use \\n for line break and \\\\ for \\):\n")
+				Alice.SendAuthText(
+					text = tools.strDeserialize(newText+'.'),
+					encK = encK,
+					authK = authK,
+					netSoc = netSoc,
+					seq_n = mSent
+					)
+				mSent+=1
+				Alice.oFile.close()
+				Alice.oFile = open(Alice.oFile_ref, 'a')
+			case 'l':
+				if com != 'list':
+					InvalidCommandPrompt()
+					continue
+				Alice.SendAuthText(
+					text = 'l',
+					encK = encK,
+					authK = authK,
+					netSoc = netSoc,
+					seq_n = mSent
+					)
+				mSent += 1
+				Alice.oFile.close()
+				Alice.oFile = open(Alice.oFile_ref, 'a')
+			case 'e':
+				if com != 'exit':
+					InvalidCommandPrompt()
+					continue
+				Alice.SendAuthText(
+					text = 'e',
+					encK = encK,
+					authK = authK,
+					netSoc = netSoc,
+					seq_n = mSent
+					)
+				break
+			case _ :
+				InvalidCommandPrompt()
+				continue
+		message = Alice.RecvAuthText(encK, authK, netSoc, mReceived)
+		mReceived += 1
+		Alice.oFile.close()
+		Alice.oFile = open(Alice.oFile_ref, 'a')
+		if message == '':
+			break
+		print(message)
+		
+
+def HelpPrompt():
+	print("h - help")
+	print("r [filename] - retrieve file")
+	print("w [filename] - overwrite file")
+	print("list - see hosted files")
+	print("exit - end the connection")
+
+def InvalidCommandPrompt():
+	print("Invalid command, type 'help' to see the list of available commands")
+
+#CONFIGURATION START
+Bob_addr = "127.0.0.1" # address and port used by Bob to set up protocol
+Bob_port = 65433
+Alice.verbose = 1 #set to 0 to not save Alice's logs, 1 to have include protocol's internal state in the protocol and 2 to include messages exchange in the logs as well. 
+Alice.oFile_ref = "AliceOutput.txt" #Output file where the Alice's logs are saved
+Bob.verbose = 1 # Same as Alice.verbose but for Bob's logs
+Bob.oFile_ref = "BobOutput.txt" # Same as Alice.oFile_ref but for Bob's logs
+#CONFIGURATION END
+
+Alice.oFile = open(Alice.oFile_ref, 'w')
+Bob.oFile = open(Bob.oFile_ref, 'w')
+
+# Load keys
+with open("BobPubKey.pem", "rb") as f:
+	Bob_pubKey = SERIAL.load_pem_public_key(
+		f.read()
+	)
+	f.close()
+with open("AlicePubKey.pem", "rb") as f:
+	Alice_pubKey = SERIAL.load_pem_public_key(
+		f.read()
+	)
+	f.close()
+
+S = os.urandom(64)
+m_int = tools.trueRand_int( Alice_pubKey.public_numbers().n )
+r = tools.trueRand_int( Alice_pubKey.public_numbers().n )
+
+t1 = threading.Thread(target = BOB_THREAD, kwargs={
+	"address":Bob_addr, 
+	"port":Bob_port,
+	"My_pubKey":Bob_pubKey,
+	"Their_pubKey":Alice_pubKey,
+	"S":S,
+	"m_int":m_int,
+	"r":r
+})
+t1.start()
+print("THREAD 1 STARTED")
+
+t2 = threading.Thread(target = ALICE_THREAD, kwargs={
+	"address":Bob_addr, 
+	"port":Bob_port,
+	"My_pubKey":Alice_pubKey,
+	"Their_pubKey":Bob_pubKey,
+	"S":S,
+	"m_int":m_int,
+	"r":r
+})
+
+t2.start()
+print("THREAD 2 STARTED")
+
+t1.join()
+t2.join()
+Alice.oFile.close()
+Bob.oFile.close()
+input("Scenario Complete")
