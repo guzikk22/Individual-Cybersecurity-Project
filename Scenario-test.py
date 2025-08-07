@@ -47,6 +47,7 @@ Alice.oFile_ref = "AliceOutput.txt" #Output file where the Alice's logs are save
 Bob.verbose = 0 # Same as Alice.verbose but for Bob's logs
 Bob.oFile_ref = "BobOutput.txt" # Same as Alice.oFile_ref but for Bob's logs
 iteration_count = 100 #number of times protocol will be performed
+threading_verbose = False
 #CONFIGURATION END
 
 Alice.oFile = open(Alice.oFile_ref, 'w')
@@ -84,11 +85,13 @@ for i in range(iteration_count):
 
 	t1 = threading.Thread(target = BOB_THREAD, args=(Bob_addr, Bob_port, Bob_privK, Alice_pubK))
 	t1.start()
-	print("THREAD 1-"+str(i)+" STARTED")
+	if threading_verbose:
+		print("THREAD 1-"+str(i)+" STARTED")
 
 	t2 = threading.Thread(target = ALICE_THREAD, args=(Bob_addr, Bob_port, Alice_privK, Bob_pubK))
 	t2.start()
-	print("THREAD 2-"+str(i)+" STARTED")
+	if threading_verbose:
+		print("THREAD 2-"+str(i)+" STARTED")
 
 	t1.join()
 	t2.join()
